@@ -1,0 +1,12 @@
+Logs
+Library
+UserSettings
+UIElementsSchema
+Temp
+Web-Builds
+
+
+omnisharp.json
+*.csproj
+*.sln
+*.blob
