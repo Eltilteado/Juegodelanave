@@ -1,69 +1,56 @@
 using UnityEngine;
-using TMPro;
 
 public class Obstacle : MonoBehaviour
 {
-    public float minSize;
-    public float maxSize;
+    [Header("Configuración de Movimiento")]
+    [SerializeField] private float speed = 4.0f;           // Velocidad constante de caída/avanzado
+    [SerializeField] private float rotationSpeed = 45.0f;   // Velocidad de giro para efecto visual
+    [SerializeField] private bool moveTowardsPlayer = true; // Si persigue a la nave o cae libremente
 
-    public float minSpeed;
-    public float maxSpeed;
-
-    public float maxSpinSpeed;
-
-    public TMP_Text text;
-
-    Rigidbody2D rb;
+    private Rigidbody2D rb;
+    private Transform playerTransform;
 
     void Start()
     {
-
-        if (GetComponent<CloneMarker>() != null) return;
-
-        var trigrams = Dictionary.Instance.trigrams;
-
-        string randomTrigram = trigrams[Random.Range(0, trigrams.Count)];
-
-        text.text = randomTrigram;
-
-        float randomSize = Random.Range(minSize, maxSize);
-        transform.localScale = new Vector3(randomSize, randomSize, 1);
-
-
-        float randomSpeed = Random.Range(minSpeed, maxSpeed);
-        Vector2 randomDirection = Random.insideUnitCircle;
-
-        float randomTorque = Random.Range(-maxSpinSpeed, maxSpinSpeed);
-
         rb = GetComponent<Rigidbody2D>();
-        rb.AddForce(randomDirection * randomSpeed * Time.deltaTime);
-        rb.AddTorque(randomTorque);
-    }
 
-    void OnEnable()
-    {
-        PlayerController.OnWordTyped += HandleWordTyped;
-    }
-
-    void OnDisable()
-    {
-        PlayerController.OnWordTyped -= HandleWordTyped;
-    }
-
-    void HandleWordTyped(string typedWord)
-    {
-        if (typedWord.Contains(text.text) && Dictionary.Instance.words.Contains(typedWord))
+        // Configuración para evitar físicas pasivas
+        if (rb != null)
         {
-            OnWordMatched(typedWord);
+            rb.gravityScale = 0f; // Quitamos gravedad por si interfiere
+        }
+
+        // Buscar a la nave en la escena
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            playerTransform = playerObj.transform;
+        }
+
+        // Dirección inicial
+        Vector2 direction = Vector2.down; // Por defecto hacia abajo
+
+        if (moveTowardsPlayer && playerTransform != null)
+        {
+            // Apuntar directamente hacia la posición de la nave
+            direction = (playerTransform.position - transform.position).normalized;
+        }
+
+        // Asignar velocidad inmediata al Rigidbody2D
+        if (rb != null)
+        {
+            rb.linearVelocity = direction * speed;
+            rb.angularVelocity = Random.Range(-rotationSpeed, rotationSpeed);
         }
     }
 
-    private void OnWordMatched(string word)
+    void Update()
     {
-        Spawner.Instance.timer *= 0.75f;
-        Dictionary.Instance.words.Remove(word);
-        Destroy(gameObject);
+        // Si no tiene Rigidbody2D, forzar movimiento por Transform
+        if (rb == null)
+        {
+            transform.Translate(Vector3.down * speed * Time.deltaTime, Space.World);
+            transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
+        }
     }
-
-
 }
